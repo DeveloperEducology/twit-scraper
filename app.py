@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 from pymongo import MongoClient, UpdateOne
 from dotenv import load_dotenv
 from datetime import datetime
-import certifi  # 1️⃣ Import the certifi library
+import certifi
 
 # --- Configuration ---
 load_dotenv()
@@ -27,7 +27,7 @@ if os.environ.get("TWITTER_COOKIES"):
 if not MONGO_URI:
     raise Exception("❌ ERROR: MONGO_URI is not defined in your .env file.")
 
-# 2️⃣ Add tlsCAFile to the client to fix SSL issues
+# Add tlsCAFile to the client to fix SSL issues
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.get_default_database()
 articles_collection = db.articles
@@ -54,7 +54,7 @@ async def scrape_tweets(username: str, required_tweet_count: int = 25):
             await page.wait_for_selector("div[data-testid='cellInnerDiv']", timeout=60000)
 
             # Scrolling logic
-            for _ in range(10):
+            for _ in range(10): # Scroll up to 10 times
                 tweet_count = await page.locator("article[data-testid='tweet']").count()
                 if tweet_count >= required_tweet_count:
                     break
@@ -115,7 +115,8 @@ def scrape_and_save(username):
     try:
         count = int(request.args.get('count', 5))
         
-        recent_tweets = asyncio.run(scrape_tweets(username, count + 20))
+        # Run the async scraper function
+        recent_tweets = asyncio.run(scrape_tweets(username, count + 20)) # Get a buffer
         
         if not recent_tweets:
             return jsonify({"message": "No tweets found on the user's profile."}), 404
@@ -137,6 +138,7 @@ def scrape_and_save(username):
 
         tweets_to_save = new_tweets[:count]
         
+        # --- Database Save Logic (Bulk Upsert) ---
         operations = []
         for tweet in tweets_to_save:
             article_data = {
@@ -169,5 +171,6 @@ def scrape_and_save(username):
         return jsonify({"error": "Failed to scrape or save tweets.", "details": str(e)}), 500
 
 if __name__ == "__main__":
+    # This part is for local development, Gunicorn will be used in production
     app.run(port=PORT)
 
